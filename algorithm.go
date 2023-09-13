@@ -38,10 +38,6 @@ func (p *algorithmBase) Used() float64 {
 }
 
 func (p *algorithmBase) Reset(width, height int) {
-	if width <= 0 || height <= 0 {
-		panic("width and height must be greater than 0")
-	}
-
 	p.maxWidth = width
 	p.maxHeight = height
 	p.usedArea = 0

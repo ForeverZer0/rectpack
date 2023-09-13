@@ -122,7 +122,7 @@ func createImage(t *testing.T, path string, packer *Packer) {
 func TestAtlas(t *testing.T) {
 	return
 	paths, _ := filepath.Glob("/usr/share/icons/Adwaita/32x32/devices/*.png")
-	packer := NewPacker(512, 512, MaxRectsBAF)
+	packer, _ := NewPacker(512, 512, MaxRectsBAF)
 
 	img, mapping, err := createAtlas(packer, paths)
 	if err != nil {
@@ -144,7 +144,7 @@ func TestRandom(t *testing.T) {
 	minSize := NewSize(32, 32)
 	maxSize := NewSize(96, 96)
 
-	packer := NewPacker(1024, 8192, MaxRectsBSSF)
+	packer, _ := NewPacker(1024, 8192, MaxRectsBSSF)
 	packer.AllowFlip(true)
 	packer.Online = false
 	packer.Padding = 2

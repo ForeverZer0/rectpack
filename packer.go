@@ -1,6 +1,10 @@
 package rectpack
 
-import "slices"
+import (
+	"errors"
+	"fmt"
+	"slices"
+)
 
 // DefaultSize is the default width/height used as the maximum extent for packing rectangles.
 //
@@ -206,7 +210,13 @@ func (p *Packer) AllowFlip(enabled bool) {
 
 // NewPacker initializes a new Packer using the specified maximum size and heustistics for
 // packing rectangles.
-func NewPacker(maxWidth, maxHeight int, heuristic Heuristic) *Packer {
+//
+// A width/height less than 1 will cause a panic, 
+func NewPacker(maxWidth, maxHeight int, heuristic Heuristic) (*Packer, error) {
+	if maxWidth <= 0 || maxHeight <= 0 {
+		return nil, fmt.Errorf("width and height must be greater than 0 (given %vx%x)", maxWidth, maxHeight)
+	}
+
 	p := &Packer{
 		Online:   false,
 		sortFunc: SortArea,
@@ -221,16 +231,17 @@ func NewPacker(maxWidth, maxHeight int, heuristic Heuristic) *Packer {
 	case Guillotine:
 		p.algo = newGuillotine(maxWidth, maxHeight, heuristic)
 	default:
-		panic("heuristics specify invalid argorithm")
+		return nil, errors.New("heuristics specify an invalid argorithm")
 	}
 
-	return p
+	return p, nil
 }
 
 // NewDefaultPacker initializes a new Packer with sensible default settings suitable for
 // general-purpose rectangle packing.
 func NewDefaultPacker() *Packer {
-	return NewPacker(DefaultSize, DefaultSize, MaxRectsBSSF)
+	packer, _ := NewPacker(DefaultSize, DefaultSize, SkylineBLF)
+	return packer
 }
 
 // vim: ts=4
