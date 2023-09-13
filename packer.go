@@ -13,8 +13,8 @@ const DefaultSize = 4096
 type Packer struct {
 	// unpacked contains sizes that have not yet been packed or unable to be packed.
 	unpacked []Size
-	// packer is the algorithm implementation that performs the actual computation.
-	packer packAlgorithm
+	// algo is the algorithm implementation that performs the actual computation.
+	algo packAlgorithm
 	// sortFunc contains the function that will be used to determine comparison of sizes
 	// when sorting.
 	sortFunc SortFunc
@@ -51,7 +51,7 @@ type Packer struct {
 // to contain all packed rectangles.
 func (p *Packer) Size() Size {
 	var size Size
-	for _, rect := range p.packer.Rects() {
+	for _, rect := range p.algo.Rects() {
 		size.Width = max(size.Width, rect.Right()+p.Padding)
 		size.Height = max(size.Height, rect.Bottom()+p.Padding)
 	}
@@ -69,8 +69,7 @@ func (p *Packer) Size() Size {
 // staged.
 func (p *Packer) Insert(sizes ...Size) []Size {
 	if p.Online {
-		p.packer.Padding(p.Padding)
-		return p.packer.Insert(sizes...)
+		return p.algo.Insert(p.Padding, sizes...)
 	}
 
 	p.unpacked = append(p.unpacked, sizes...)
@@ -108,7 +107,7 @@ func (p *Packer) Sorter(compare SortFunc, reverse bool) {
 // The backing memory is owned by the packer, and a copy should be made if modification or
 // persistence is required.
 func (p *Packer) Rects() []Rect {
-	return p.packer.Rects()
+	return p.algo.Rects()
 }
 
 // Unpacked returns a slice of rectangles that are currently staged to be packed.
@@ -128,29 +127,28 @@ func (p *Packer) Unpacked() []Size {
 func (p *Packer) Used(current bool) float64 {
 	if current {
 		size := p.Size()
-		return float64(p.packer.UsedArea()) / float64(size.Width * size.Height)
+		return float64(p.algo.UsedArea()) / float64(size.Width * size.Height)
 	}
-	return p.packer.Used()
+	return p.algo.Used()
 }
 
+// Map creates and returns a map where each key is an ID, and the value is the rectangle it
+// pertains to.
 func (p *Packer) Map() map[int]Rect {
-	// TODO: Support for generic IDs
-	// TODO: Make integer ID private for Size, support generic ids that use a map[T]Rect
-
-	src := p.packer.Rects()
-	dst := make(map[int]Rect, len(src))
-	for _, rect := range src {
-		dst[rect.ID] = rect
+	rects := p.algo.Rects()
+	mapping := make(map[int]Rect, len(rects))
+	for _, rect := range rects {
+		mapping[rect.ID] = rect
 	}
 
-	return dst
+	return mapping
 }
 
 // Clear resets the internal state of the packer without changing its current configuration. All
 // currently packed and pending rectangles are removed.
 func (p *Packer) Clear() {
-	size := p.packer.MaxSize()
-	p.packer.Reset(size.Width, size.Height)
+	size := p.algo.MaxSize()
+	p.algo.Reset(size.Width, size.Height)
 	p.unpacked = p.unpacked[:0]
 }
 
@@ -163,7 +161,6 @@ func (p *Packer) Pack() bool {
 		return true
 	}
 
-	p.packer.Padding(p.Padding)
 	if p.sortFunc != nil {
 		if p.sortRev {
 			slices.SortFunc(p.unpacked, func(a, b Size) int {
@@ -176,7 +173,7 @@ func (p *Packer) Pack() bool {
 		slices.Reverse(p.unpacked)
 	}
 
-	failed := p.packer.Insert(p.unpacked...)
+	failed := p.algo.Insert(p.Padding, p.unpacked...)
 	if len(failed) == 0 {
 		p.unpacked = p.unpacked[:0]
 		return true
@@ -187,16 +184,16 @@ func (p *Packer) Pack() bool {
 }
 
 // RepackAll clears the internal packed rectangles, and repacks them all with one operation. This
-// can be useful to optimize the packing when if it was previously performed in multiple pack
-// operations or the packer's settings have been changed. 
+// can be useful to optimize the packing when/if it was previously performed in multiple pack
+// operations, or to reflect settings for the packer that have been modified. 
 func (p *Packer) RepackAll() bool {
-	rects := p.packer.Rects()
+	rects := p.algo.Rects()
 	for _, rect := range rects {
 		p.unpacked = append(p.unpacked, rect.Size)
 	}
 	
 	size := p.Size()
-	p.packer.Reset(size.Width, size.Height)
+	p.algo.Reset(size.Width, size.Height)
 	return p.Pack()
 }
 
@@ -204,7 +201,7 @@ func (p *Packer) RepackAll() bool {
 //
 // Default: false
 func (p *Packer) AllowFlip(enabled bool) {
-	p.packer.AllowFlip(enabled)
+	p.algo.AllowFlip(enabled)
 }
 
 // NewPacker initializes a new Packer using the specified maximum size and heustistics for
@@ -218,13 +215,13 @@ func NewPacker(maxWidth, maxHeight int, heuristic Heuristic) *Packer {
 
 	switch heuristic & typeMask {
 	case MaxRects:
-		p.packer = newMaxRects(maxWidth, maxHeight, heuristic)
+		p.algo = newMaxRects(maxWidth, maxHeight, heuristic)
 	case Skyline:
-		p.packer = newSkyline(maxWidth, maxHeight, heuristic)
+		p.algo = newSkyline(maxWidth, maxHeight, heuristic)
 	case Guillotine:
-		p.packer = newGuillotine(maxWidth, maxHeight, heuristic)
+		p.algo = newGuillotine(maxWidth, maxHeight, heuristic)
 	default:
-		panic("invalid algorithm type specified in heuristics")
+		panic("heuristics specify invalid argorithm")
 	}
 
 	return p

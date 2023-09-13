@@ -41,7 +41,7 @@ func (p *skylinePack) Reset(width, height int) {
 	}
 }
 
-func (p *skylinePack) Insert(sizes ...Size) []Size {
+func (p *skylinePack) Insert(padding int, sizes ...Size) []Size {
 	for len(sizes) > 0 {
 
 		var bestNode Rect
@@ -53,7 +53,7 @@ func (p *skylinePack) Insert(sizes ...Size) []Size {
 		for i, size := range sizes {
 			var score1, score2, index int
 			var newNode Rect
-			padSize(&size, p.padding)
+			padSize(&size, padding)
 
 			switch p.levelSelect {
 			case MinWaste:
@@ -81,7 +81,7 @@ func (p *skylinePack) Insert(sizes ...Size) []Size {
 		p.addLevel(bestBinIndex, &bestNode)
 		p.usedArea += bestNode.Area()
 
-		unpadRect(&bestNode, p.padding)
+		unpadRect(&bestNode, padding)
 		bestNode.ID = sizes[bestSizeIndex].ID
 		p.packed = append(p.packed, bestNode)
 

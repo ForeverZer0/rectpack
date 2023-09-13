@@ -47,7 +47,7 @@ func (p *guillotinePack) Reset(width, height int) {
 	p.freeRects = append(p.freeRects, NewRect(0, 0, p.maxWidth, p.maxHeight))
 }
 
-func (p *guillotinePack) Insert(sizes ...Size) []Size {
+func (p *guillotinePack) Insert(padding int, sizes ...Size) []Size {
 	// Remember variables about the best packing choice we have made so far during the iteration process.
 	bestFreeRect := 0
 	bestRect := 0
@@ -62,7 +62,7 @@ func (p *guillotinePack) Insert(sizes ...Size) []Size {
 		for i, freeRect := range p.freeRects {
 			for j, size := range sizes {
 
-				padSize(&size, p.padding)
+				padSize(&size, padding)
 
 				// If this rectangle is a perfect match, we pick it instantly.
 				if size.Width == freeRect.Width && size.Height == freeRect.Height {
@@ -133,7 +133,7 @@ func (p *guillotinePack) Insert(sizes ...Size) []Size {
 		// Remember the new used rectangle.
 		p.usedArea += newNode.Area()
 
-		unpadRect(&newNode, p.padding)
+		unpadRect(&newNode, padding)
 		p.packed = append(p.packed, newNode)
 	}
 

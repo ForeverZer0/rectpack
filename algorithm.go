@@ -8,19 +8,17 @@ type packAlgorithm interface {
 	// 0.0 (empty) and 1.0 (perfectly packed with no waste).
 	Used() float64
 	// Insert pushes new rectangles into packer, finding the best placement for them based on
-	// its configuration and current state.
+	// its configuration and current state. The padding argument specifies the amount of empty
+	// space that should be left between rectangles.
 	//
 	// Returns a slice of sizes that could not be packed.
-	Insert(sizes ...Size) []Size
+	Insert(padding int, sizes ...Size) []Size
 	// Rects returns a slice of rectangles that have been packed.
 	Rects() []Rect
 	// AllowFlip indicates if rectangles can be flipped/rotated to provide better placement.
 	//
 	// Default: false
 	AllowFlip(enabled bool)
-	// Padding defines the padding to place around rectangles. Because the padding applies to all
-	// sides equally, it will always end up being a power of 2 between rectangles.
-	Padding(padding int)
 	// MaxSize returns the maximum size the algorithm can pack into.
 	MaxSize() Size
 	// UsedArea returns the total area that is occupied.
@@ -33,7 +31,6 @@ type algorithmBase struct {
 	maxHeight int
 	usedArea  int
 	allowFlip bool
-	padding   int
 }
 
 func (p *algorithmBase) Used() float64 {
@@ -57,10 +54,6 @@ func (p *algorithmBase) Rects() []Rect {
 
 func (p *algorithmBase) AllowFlip(enabled bool) {
 	p.allowFlip = enabled
-}
-
-func (p *algorithmBase) Padding(padding int) {
-	p.padding = int(padding)
 }
 
 func (p *algorithmBase) MaxSize() Size {

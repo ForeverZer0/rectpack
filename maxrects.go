@@ -40,7 +40,7 @@ func (p *maxRects) Reset(width, height int) {
 	p.freeRects = append(p.freeRects, NewRect(0, 0, p.maxWidth, p.maxHeight))
 }
 
-func (p *maxRects) Insert(sizes ...Size) []Size {
+func (p *maxRects) Insert(padding int, sizes ...Size) []Size {
 	for len(sizes) > 0 {
 
 		var bestNode Rect
@@ -50,7 +50,7 @@ func (p *maxRects) Insert(sizes ...Size) []Size {
 
 		for i, size := range sizes {
 
-			padSize(&size, p.padding)
+			padSize(&size, padding)
 			newNode, score1, score2 := p.scoreRect(size.Width, size.Height)
 			if score1 < bestScore1 || (score1 == bestScore1 && score2 < bestScore2) {
 				bestScore1 = score1
@@ -66,7 +66,7 @@ func (p *maxRects) Insert(sizes ...Size) []Size {
 		}
 
 		p.placeRect(bestNode)
-		unpadRect(&bestNode, p.padding)
+		unpadRect(&bestNode, padding)
 		p.packed = append(p.packed, bestNode)
 
 		last := len(sizes) - 1
